@@ -515,6 +515,8 @@ export default tokenizer;
 
 ### 5.2 上下文无关法
 
+这里就模拟加法和乘法的例子。
+
 - 上下文无关的意思是，无论在任何情况下，文法的推导规则是一样的
 - 规则分为两级，第一级是加法规则，第二级就是乘法规则。把乘法规则作为加分规则的子规则
 - 解析形成AST时，乘法节点就一定是加法节点的子节点，从而被优先计算
@@ -526,6 +528,328 @@ export default tokenizer;
 ```js
 2+3*4
 ```
+
+语法规则：
+
+```js
+add -> multiple | multiple + add
+multiple -> NUMBER | NUMBER * multiple
+```
+
+**生成的tokens：**
+
+```ts
+[
+  { type: Symbol(number), value: '2' },
+  { type: Symbol(plus), value: '+' },
+  { type: Symbol(number), value: '3' },
+  { type: Symbol(multiple), value: '*' },
+  { type: Symbol(number), value: '4' }
+]
+```
+
+#### 词法解析
+
+前面我们使用了有限状态机实现了一个简单的词法分析器，这里我们使用正则词法来实现解析脚本生成tokens。
+
+**先定义类型：**
+
+```ts
+export const NUMBER = "number";
+export const PLUS = "plus";
+export const MULTIPLE = "multiple";
+```
+
+**然后就是正则表达式，和使用正则进行匹配，生成token。使用正则就写起来非常简单了。**
+
+```js
+/*
+ * @Author: 毛毛
+ * @Date: 2022-06-26 08:26:48
+ * @Last Modified by: 毛毛
+ * @Last Modified time: 2022-06-26 08:44:29
+ */
+import { NUMBER, PLUS, MULTIPLE } from "./tokenTypes.js";
+const tokenNames = [NUMBER, PLUS, MULTIPLE];
+// 分词 使用正则语法
+const RegExpObject = /(\d+)|(\+)|(\*)/g;
+/**
+ * 使用正则来进行分词
+ * @param {*} script
+ */
+export default function tokenize(script) {
+  const tokens = [];
+  for (const token of tokenizer(script)) {
+    tokens.push(token);
+  }
+  return tokens;
+}
+/**
+ * 生成 token
+ * @param {*} script
+ */
+function* tokenizer(script) {
+  let res;
+  while (1) {
+    // 匹配代码
+    res = RegExpObject.exec(script);
+    if (!res) break;
+    // 这里拿到的是匹配项的索引
+    const index = res.findIndex((item, index) => !!item && index > 0);
+    // 第一项就是匹配的内容
+    const token = { type: tokenNames[index-1], value: res[0] };
+    yield token;
+  }
+}
+```
+
+当然，这样就已经可以生成上面我们需要的tokens了。
+
+但是一般我们不会直接返回这个生成的tokens。我们在语法分析阶段，很多时候需要知道当前token的下一个token，返回tokens数组，我们还需要自己通过索引去访问，不方便也容易出错。所以我们还需要对tokens进行一下封装。
+
+```js
+export default function tokenize(script) {
+  const tokens = [];
+  for (const token of tokenizer(script)) {
+    tokens.push(token);
+  }
+  return new TokenReader(tokens);
+}
+
+class TokenReader {
+  constructor(tokens) {
+    this.tokens = tokens;
+    this.pos = 0; // 索引
+  }
+  /**
+   * 读取token 会消耗掉当前读取到的token，索引后移了
+   */
+  read() {
+    if (this.pos < this.tokens.length) {
+      return this.tokens[this.pos++];
+    }
+    return null;
+  }
+  /**
+   * 查看当前索引的下一个token是什么，不会销毁掉下一个token
+   */
+  peek() {
+    if (this.pos < this.tokens.length) {
+      return this.tokens[this.pos];
+    }
+    return null;
+  }
+  /**
+   * token多读 或者错读 回退
+   */
+  unread() {
+    if (this.pos > 0) {
+      this.pos--;
+    }
+  }
+}
+```
+
+#### 生成AST
+
+**AST 的节点类型：**
+
+```js
+// AST节点的类型
+export const Program = "program"; // 程序 语法树的根节点
+export const Numeric = "numeric"; // 数字
+export const Additive = "additive"; // 加法
+export const Multiplicative = "multiplicative"; // 乘法
+```
+
+**ASTNode:**
+
+```js
+export default class ASTNode {
+  constructor(type, value) {
+    this.type = type; // 节点类型
+    if (value) {
+      this.value = value; // 节点的值
+    }
+  }
+  /**
+   * 给当前节点添加子节点
+   * @param {*} childNode
+   */
+  appendChild(childNode) {
+    (this.children || (this.children = [])).push(childNode);
+  }
+}
+```
+
+**toAST**
+
+```js
+/*
+ * @Author: 毛毛
+ * @Date: 2022-06-26 09:00:24
+ * @Last Modified by: 毛毛
+ * @Last Modified time: 2022-06-26 10:24:44
+ */
+import { TokenReader } from "./tokenizer.js";
+import { NUMBER, PLUS, MULTIPLE } from "./tokenTypes.js";
+import { Program, Numeric, Additive, Multiplicative } from "./nodeTypes.js";
+import ASTNode from "./astNode.js";
+/**
+ * token转ast
+ * @param {TokenReader} tokenReader
+ */
+export default function toAST(tokenReader) {
+  const rootNode = new ASTNode(Program);
+  // 开始推导 加法 乘法 先推导成加法
+  // 实现的时候 每个规则都是一个函数 additive就是加法规则的函数
+  const child = additive(tokenReader);
+  if (child) {
+    rootNode.appendChild(child);
+  }
+  return rootNode;
+}
+/**
+ * 加法
+ * @param {TokenReader} tokenReader
+ */
+function additive(tokenReader) {
+  const child1 = multiple(tokenReader);
+  let node = child1;
+  // 拿到下一个token 看是不是 +
+  let nextToken = tokenReader.peek();
+  if (child1 != null && nextToken != null) {
+    if (nextToken.type === PLUS) {
+      // 匹配到 + 取出该token消耗掉
+      nextToken = tokenReader.read();
+      const child2 = additive(tokenReader); // 递归下降
+      if (child2 != null) {
+        node = new ASTNode(Additive);
+        node.appendChild(child1);
+        node.appendChild(child2);
+      }
+    }
+  }
+  return node;
+}
+/**
+ * 乘法
+ * @param {TokenReader} tokenReader
+ */
+function multiple(tokenReader) {
+  // 匹配出来了 number了 但是乘法匹配规则还没有匹配结束
+  const child1 = number(tokenReader);
+  let node = child1;
+  // 、看下一个token 是什么
+  let nextToken = tokenReader.peek(); // +
+  if (child1 != null && nextToken != null) {
+    if (nextToken.type === MULTIPLE) {
+      // 后面是乘法 *
+      nextToken = tokenReader.read();
+      const child2 = multiple(tokenReader);
+      if (child2 != null) {
+        // 乘法 AST节点
+        node = new ASTNode(Multiplicative);
+        node.appendChild(child1);
+        node.appendChild(child2);
+      }
+    }
+  }
+  return node;
+}
+/**
+ * 数字
+ * @param {TokenReader} tokenReader
+ */
+function number(tokenReader) {
+  let node = null;
+  let token = tokenReader.peek(); // 查看当前token
+  if (token != null && token.type === NUMBER) {
+    // 匹配到数字 消耗掉当前的token了
+    token = tokenReader.read();
+    // 创建一个新的语法树节点 类型是 Numeric 值就是token的值
+    node = new ASTNode(Numeric, token.value);
+  }
+  return node;
+}
+
+```
+
+**parse:**
+
+```js
+import tokenize from "./tokenizer.js";
+import toAST from "./toAST.js";
+// parse 是一个函数 可以把一段代码转为抽象语法树
+export default function parse(script) {
+  // 1. 把代码进行分词处理
+  const tokenReader = tokenize(script);
+  // token -> ast
+  const ast = toAST(tokenReader);
+  return ast;
+}
+```
+
+接下来就可以看看生成的ast的结果：
+
+```js
+import parse from "./parse.js";
+const sourceCode = "2+3*4"
+const ast = parse(sourceCode)
+console.log(JSON.stringify(ast,null,2))
+```
+
+![image-20220626103211678](README.assets/image-20220626103211678.png)
+
+![image-20220626103228052](README.assets/image-20220626103228052.png)
+
+#### 计算表达式结果
+
+通过ast，我们就可以开始计算结果了。
+
+evaluate：
+
+```js
+/*
+ * @Author: 毛毛
+ * @Date: 2022-06-26 10:36:44
+ * @Last Modified by: 毛毛
+ * @Last Modified time: 2022-06-26 10:52:54
+ */
+import { Program, Additive, Multiplicative, Numeric } from "./nodeTypes.js";
+/**
+ * 根据ast节点计算结果
+ * @param {*} node
+ */
+export default function evaluate(node) {
+  let res;
+  switch (node.type) {
+    case Program: // 根节点其实只有一个
+      for (const child of node.children) {
+        res = evaluate(child);
+      }
+      break;
+    case Additive: // 加法节点
+      res = evaluate(node.children[0]) + evaluate(node.children[1]);
+      break;
+    case Multiplicative:
+      res = evaluate(node.children[0]) * evaluate(node.children[1]);
+      break;
+    case Numeric:
+      res = parseFloat(node.value);
+      break;
+  }
+  return res;
+}
+```
+
+![image-20220626110041162](README.assets/image-20220626110041162.png)
+
+对应加法和乘法就是这样。
+
+
+
+
 
 
 

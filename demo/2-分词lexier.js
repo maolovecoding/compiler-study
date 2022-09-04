@@ -2,7 +2,7 @@
  * @Author: 毛毛
  * @Date: 2022-06-24 21:17:49
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-06-24 21:35:24
+ * @Last Modified time: 2022-09-04 10:45:19
  */
 // 分词
 /**
@@ -61,6 +61,7 @@ function number(char) {
 }
 
 function tokenizer(input) {
+  // 刚开始的时候是start状态
   let state = start;
   for (const char of input) {
     state = state(char);
