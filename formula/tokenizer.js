@@ -2,12 +2,28 @@
  * @Author: 毛毛
  * @Date: 2022-06-26 08:26:48
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-06-26 09:26:06
+ * @Last Modified time: 2022-09-07 08:14:18
  */
-import { NUMBER, PLUS, MULTIPLE } from "./tokenTypes.js";
-const tokenNames = [NUMBER, PLUS, MULTIPLE];
+import {
+  NUMBER,
+  PLUS,
+  MULTIPLE,
+  MINUS,
+  DIVIDE,
+  LEFT_PARA,
+  RIGHT_PARA,
+} from "./tokenTypes.js";
+const tokenNames = [
+  NUMBER,
+  PLUS,
+  MULTIPLE,
+  MINUS,
+  DIVIDE,
+  LEFT_PARA,
+  RIGHT_PARA,
+];
 // 分词 使用正则语法
-const RegExpObject = /(\d+)|(\+)|(\*)/g;
+const RegExpObject = /(\d+)|(\+)|(\*)|(-)|(\/)(\()(\))/g;
 /**
  * 使用正则来进行分词
  * @param {*} script
