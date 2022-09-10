@@ -2,7 +2,7 @@
  * @Author: 毛毛
  * @Date: 2022-06-25 08:39:16
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-06-25 10:10:06
+ * @Last Modified time: 2022-09-08 22:57:15
  */
 import {
   LeftParentheses,
@@ -227,7 +227,7 @@ function tokenizer(input) {
 
 const sourceCode = `<div id="title" name={name}><span>hello</span>world</div>`;
 
-console.log(tokenizer(sourceCode));
+// console.log(tokenizer(sourceCode));
 
 export default tokenizer;
 
