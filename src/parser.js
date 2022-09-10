@@ -95,7 +95,7 @@ const parser = (sourceCode) => {
         throw new TypeError("开始标签 和结束标签 不匹配");
       }
       return {
-        type: nodeTypes.JSXIdentifier,
+        type: nodeTypes.JSXClosingElement,
         name: {
           type: nodeTypes.JSXIdentifier,
           name: token.value,
@@ -117,9 +117,9 @@ const parser = (sourceCode) => {
   return ast;
 };
 
-const sourceCode = `<div id="title" name={name}><span>hello</span>world</div>`;
+// const sourceCode = `<div id="title" name={name}><span>hello</span>world</div>`;
 
-console.log(JSON.stringify(parser(sourceCode), null, 2));
+// console.log(JSON.stringify(parser(sourceCode), null, 2));
 
 export { parser };
 
