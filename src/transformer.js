@@ -100,8 +100,94 @@ export const transformer = (ast) => {
     },
   });
 };
-const sourceCode = `<div id="title" name={name}><span>hello</span>world</div>`;
+// const sourceCode = `<div id="title" name={name}><span>hello</span>world</div>`;
 
-const ast = parser(sourceCode);
-transformer(ast);
-console.log(JSON.stringify(ast, null, 2));
+// const ast = parser(sourceCode);
+// transformer(ast);
+// console.log(JSON.stringify(ast, null, 2));
+/**
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "CallExpression",
+        "callee": {
+          "type": "MemberExpression",
+          "object": {
+            "type": "Identifier",
+            "name": "React"
+          },
+          "property": {
+            "type": "Identifier",
+            "name": "createElement"
+          }
+        },
+        "arguments": [
+          {
+            "type": "StringLiteral",
+            "value": "div"
+          },
+          {
+            "type": "ObjectExpression",
+            "properties": [
+              {
+                "type": "Property",
+                "key": {
+                  "type": "Identifier",
+                  "name": "id"
+                },
+                "value": {
+                  "type": "StringLiteral",
+                  "value": "\"title\""
+                }
+              },
+              {
+                "type": "Property",
+                "key": {
+                  "type": "Identifier",
+                  "name": "name"
+                },
+                "value": {
+                  "type": "StringLiteral",
+                  "value": "{name}"
+                }
+              }
+            ]
+          },
+          {
+            "type": "CallExpression",
+            "callee": {
+              "type": "MemberExpression",
+              "object": {
+                "type": "Identifier",
+                "name": "React"
+              },
+              "property": {
+                "type": "Identifier",
+                "name": "createElement"
+              }
+            },
+            "arguments": [
+              {
+                "type": "StringLiteral",
+                "value": "span"
+              },
+              null,
+              {
+                "type": "StringLiteral",
+                "value": "hello"
+              }
+            ]
+          },
+          {
+            "type": "StringLiteral",
+            "value": "world"
+          }
+        ]
+      }
+    }
+  ]
+}
+*/
