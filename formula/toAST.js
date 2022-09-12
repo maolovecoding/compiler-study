@@ -2,10 +2,17 @@
  * @Author: 毛毛
  * @Date: 2022-06-26 09:00:24
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-09-07 08:25:17
+ * @Last Modified time: 2022-09-12 10:56:23
  */
 import { TokenReader } from "./tokenizer.js";
-import { NUMBER, PLUS, MULTIPLE, MINUS, LEFT_PARA } from "./tokenTypes.js";
+import {
+  NUMBER,
+  PLUS,
+  MULTIPLE,
+  MINUS,
+  LEFT_PARA,
+  DIVIDE,
+} from "./tokenTypes.js";
 import {
   Program,
   Numeric,
@@ -34,21 +41,22 @@ export default function toAST(tokenReader) {
  * @param {TokenReader} tokenReader
  */
 function additive(tokenReader) {
-  const child1 = minus(tokenReader);
+  let child1 = multiple(tokenReader);
   let node = child1;
-  // 拿到下一个token 看是不是 +
-  let nextToken = tokenReader.peek();
-  if (child1 != null && nextToken != null) {
-    // + -
-    if (nextToken.type === PLUS) {
-      // 匹配到 + 取出该token消耗掉
-      nextToken = tokenReader.read();
-      const child2 = additive(tokenReader); // 递归下降
-      if (child2 != null) {
-        node = new ASTNode(Additive);
+  if (child1 != null) {
+    while (1) {
+      // 拿到下一个token 看是不是 +
+      let token = tokenReader.peek();
+      // + -
+      if (token && (token.type === PLUS || token.type === MINUS)) {
+        // 匹配到 + 取出该token消耗掉
+        token = tokenReader.read();
+        const child2 = multiple(tokenReader);
+        node = new ASTNode(token.type === PLUS ? Additive : Minus);
         node.appendChild(child1);
         node.appendChild(child2);
-      }
+        child1 = node;
+      } else break;
     }
   }
   return node;
@@ -82,22 +90,22 @@ function minus(tokenReader) {
  * @param {TokenReader} tokenReader
  */
 function multiple(tokenReader) {
-  const child1 = divide(tokenReader);
+  let child1 = primary(tokenReader);
   let node = child1;
-  // 、看下一个token 是什么
-  let nextToken = tokenReader.peek(); // +
-  if (child1 != null && nextToken != null) {
-    //  * /
-    if (nextToken.type === MULTIPLE) {
-      // 后面是乘法 *
-      nextToken = tokenReader.read();
-      const child2 = multiple(tokenReader);
-      if (child2 != null) {
-        // 乘法 AST节点
-        node = new ASTNode(Multiplicative);
+  if (child1 != null) {
+    while (1) {
+      // 拿到下一个token 看是不是 +
+      let token = tokenReader.peek();
+      // + -
+      if (token && (token.type === MULTIPLE || token.type === DIVIDE)) {
+        // 匹配到 + 取出该token消耗掉
+        token = tokenReader.read();
+        const child2 = primary(tokenReader);
+        node = new ASTNode(token.type === MULTIPLE ? Multiplicative : Divide);
         node.appendChild(child1);
         node.appendChild(child2);
-      }
+        child1 = node;
+      } else break;
     }
   }
   return node;

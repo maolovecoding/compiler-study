@@ -1,6 +1,6 @@
 import parse from "./parse.js";
 import evaluate from "./evaluate.js";
-const sourceCode = "(3-2)*3*(2+2)";
+const sourceCode = "3-1-1-2+7";
 const ast = parse(sourceCode);
 
 console.log(JSON.stringify(ast, null, 2));

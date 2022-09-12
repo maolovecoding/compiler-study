@@ -2,7 +2,7 @@
  * @Author: 毛毛
  * @Date: 2022-06-26 08:26:48
  * @Last Modified by: 毛毛
- * @Last Modified time: 2022-09-07 08:14:18
+ * @Last Modified time: 2022-09-12 10:59:23
  */
 import {
   NUMBER,
@@ -23,7 +23,7 @@ const tokenNames = [
   RIGHT_PARA,
 ];
 // 分词 使用正则语法
-const RegExpObject = /(\d+)|(\+)|(\*)|(-)|(\/)(\()(\))/g;
+const RegExpObject = /(-?[0-9]+)|(\+)|(\*)|(-)|(\/)(\()(\))/g;
 /**
  * 使用正则来进行分词
  * @param {*} script
